@@ -10,47 +10,40 @@ namespace Multithreading_Task2
     {
         static void Main(string[] args)
         {
-            Random random = new Random();
+            var random = new Random();
             var task = Task.Run(() =>
                 {
-                    Console.WriteLine("First thread");
-                    var array = new int[10];
-                    for (var i = 0; i < 10; i++)
-                    {
-                        array[i] = random.Next(0, 1000);
-                        Console.WriteLine(array[i]);
+                    Console.WriteLine("\nFirst thread");
 
-                    }
+                    var array = Enumerable.Range(0, 10).Select(r => random.Next(0, 1000)).ToArray();
+                    array.PrintArray();
                     return array;
                 })
                 .ContinueWith(randomArray =>
                 {
-                    Console.WriteLine("Second thread");
+                    Console.WriteLine("\nSecond thread");
 
                     var randomMultiplyer = random.Next(0, 1000);
                     Console.WriteLine($"Random multiplyer {randomMultiplyer}");
 
-                    var multiplyedArray = randomArray.Result;
-                    for (var i = 0; i < multiplyedArray.Length; i++)
-                    {
-                        multiplyedArray[i] *= randomMultiplyer;
-                        Console.WriteLine(multiplyedArray[i]);
-                    }
+                    var multiplyedArray = randomArray.Result.Select(i => i * randomMultiplyer).ToArray();
+                    multiplyedArray.PrintArray();
+
                     return multiplyedArray;
                 }).ContinueWith(multiplyedArray =>
                 {
-                    Console.WriteLine("Third thread");
-                    var arrayToSort = multiplyedArray.Result;
-                    var sortedArray = arrayToSort.ToList();
-                    sortedArray.Sort();
-                    foreach (var i in sortedArray)
-                    {
-                        Console.WriteLine(i);
-                    }
+                    Console.WriteLine("\nThird thread");
+
+                    var arrayToSort = multiplyedArray.Result.ToList();
+                    arrayToSort.Sort();
+                    var sortedArray = arrayToSort.ToArray();
+                    sortedArray.PrintArray();
+
                     return sortedArray;
                 }).ContinueWith(result =>
                 {
-                    Console.WriteLine("Fourth thread");
+                    Console.WriteLine("\nFourth thread");
+
                     var average = result.Result.Average();
                     Console.WriteLine($"Average value equals {average}");
                 });
