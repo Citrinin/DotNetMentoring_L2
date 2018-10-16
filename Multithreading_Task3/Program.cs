@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Multithreading_Task3
@@ -11,6 +8,7 @@ namespace Multithreading_Task3
     {
         private static readonly Random _random = new Random();
         private static Stopwatch _timer;
+        private static object _lockobj = new object();
 
         static void Main(string[] args)
         {
@@ -66,7 +64,12 @@ namespace Multithreading_Task3
 
         private static int GetRandomInt()
         {
-            return _random.Next(-100, 100);
+            int randomNumber;
+            lock (_lockobj)
+            {
+                randomNumber = _random.Next(-100, 100);
+            }
+            return randomNumber;
         }
 
         private static void PrintArray(int[,] array)
