@@ -1,7 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -65,9 +64,53 @@ namespace Multithreading_Task7
                 {
                     Console.WriteLine(
                         $"Continuation of taskD, thread pool = {Thread.CurrentThread.IsThreadPoolThread}");
-                }, TaskContinuationOptions.OnlyOnCanceled & TaskContinuationOptions.LongRunning);
+                }, CancellationToken.None, TaskContinuationOptions.OnlyOnCanceled , new CustomTaskScheduler());
 
             taskD.Wait();
         }
     }
+
+    public class CustomTaskScheduler : TaskScheduler
+    {
+        private BlockingCollection<Task> tasksCollection = new BlockingCollection<Task>();
+
+        private readonly Thread mainThread = null;
+
+        public CustomTaskScheduler()
+        {
+            mainThread = new Thread(new ThreadStart(Execute));
+
+            if (!mainThread.IsAlive)
+            {
+                mainThread.Start();
+            }
+        }
+
+        private void Execute()
+        {
+            foreach (var task in tasksCollection.GetConsumingEnumerable())
+            {
+                TryExecuteTask(task);
+            }
+        }
+
+        protected override IEnumerable<Task> GetScheduledTasks()
+        {
+            return tasksCollection.ToArray();
+        }
+
+        protected override void QueueTask(Task task)
+        {
+            if (task != null)
+            {
+                tasksCollection.Add(task);
+            }
+        }
+
+        protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
+        {
+            return false;
+        }
+    }
+
 }
