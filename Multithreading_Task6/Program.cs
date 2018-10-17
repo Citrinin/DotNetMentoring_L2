@@ -10,16 +10,17 @@ namespace Multithreading_Task6
     {
         static void Main(string[] args)
         {
-            var syncMutex = new Mutex();
+            var readAutoResetEvent = new AutoResetEvent(false);
+            var writeAutoResetEvent = new AutoResetEvent(true);
             var sharedList = new List<int>();
 
             var taskWriter = Task.Run(() =>
             {
                 while (true)
                 {
-                    syncMutex.WaitOne();
+                    writeAutoResetEvent.WaitOne();
                     sharedList.AddRange(Enumerable.Range(0, 10));
-                    syncMutex.ReleaseMutex();
+                    readAutoResetEvent.Set();
                 }
             });
 
@@ -27,16 +28,16 @@ namespace Multithreading_Task6
             {
                 while (true)
                 {
-                    syncMutex.WaitOne();
+                    readAutoResetEvent.WaitOne();
                     Console.WriteLine("Begining of printing");
                     sharedList.ForEach(Console.WriteLine);
                     Console.WriteLine($"End of printing. Total items {sharedList.Count}");
-                    Thread.Sleep(1000);
-                    syncMutex.ReleaseMutex();
+                    Thread.Sleep(2000);
+                    writeAutoResetEvent.Set();
                 }
             });
 
-            Thread.Sleep(10000);
+            Console.ReadKey();
         }
     }
 }
