@@ -9,7 +9,7 @@ namespace Async_Await_Task4
     {
         static void Main(string[] args)
         {
-            Task4Async();
+            Task4Async().Wait();
             Console.ReadKey();
         }
 
