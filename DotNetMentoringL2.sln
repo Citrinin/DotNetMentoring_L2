@@ -35,6 +35,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Expressions_Task1", "Expres
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Expressions_Task2", "Expressions_Task2\Expressions_Task2.csproj", "{BCC87321-5285-49B7-B44C-167C7118061A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Expressions_Task3", "Expressions_Task3\Expressions_Task3.csproj", "{F3498CB5-3978-4231-96F6-0ECE96060B96}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -93,6 +95,10 @@ Global
 		{BCC87321-5285-49B7-B44C-167C7118061A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BCC87321-5285-49B7-B44C-167C7118061A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BCC87321-5285-49B7-B44C-167C7118061A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3498CB5-3978-4231-96F6-0ECE96060B96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3498CB5-3978-4231-96F6-0ECE96060B96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3498CB5-3978-4231-96F6-0ECE96060B96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3498CB5-3978-4231-96F6-0ECE96060B96}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -111,6 +117,7 @@ Global
 		{DB7F9231-5CE1-4584-A0DC-C09A35604F12} = {900B5F1F-D239-4D48-96C3-C093B38E3739}
 		{C1730F38-259C-490D-B350-EBEE4A87AA35} = {5D7B853B-81D4-40D0-9541-94C112F4D8D6}
 		{BCC87321-5285-49B7-B44C-167C7118061A} = {5D7B853B-81D4-40D0-9541-94C112F4D8D6}
+		{F3498CB5-3978-4231-96F6-0ECE96060B96} = {5D7B853B-81D4-40D0-9541-94C112F4D8D6}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E866C6A0-0ACD-4C5D-BCCC-C1B23ED0C5A9}
