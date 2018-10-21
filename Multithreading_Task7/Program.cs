@@ -72,39 +72,16 @@ namespace Multithreading_Task7
 
     public class CustomTaskScheduler : TaskScheduler
     {
-        private BlockingCollection<Task> tasksCollection = new BlockingCollection<Task>();
-
-        private readonly Thread mainThread = null;
-
-        public CustomTaskScheduler()
-        {
-            mainThread = new Thread(new ThreadStart(Execute));
-
-            if (!mainThread.IsAlive)
-            {
-                mainThread.Start();
-            }
-        }
-
-        private void Execute()
-        {
-            foreach (var task in tasksCollection.GetConsumingEnumerable())
-            {
-                TryExecuteTask(task);
-            }
-        }
+        private ConcurrentQueue<Task> tasksCollection = new ConcurrentQueue<Task>();
 
         protected override IEnumerable<Task> GetScheduledTasks()
         {
-            return tasksCollection.ToArray();
+            return tasksCollection;
         }
 
         protected override void QueueTask(Task task)
         {
-            if (task != null)
-            {
-                tasksCollection.Add(task);
-            }
+            (new Thread(() => TryExecuteTask(task))).Start();
         }
 
         protected override bool TryExecuteTaskInline(Task task, bool taskWasPreviouslyQueued)
