@@ -14,6 +14,9 @@ namespace Expressions_Task3
             WithoutProviderNonGeneric();
             WithProvider();
             WithProviderSwitchPosition();
+            WithProviderStartsWith();
+            WithProviderEndsWith();
+            WithProviderContains();
 
             Console.ReadKey();
         }
@@ -55,6 +58,36 @@ namespace Expressions_Task3
             var employees = new E3SEntitySet<EmployeeEntity>(ConfigurationManager.AppSettings["user"], ConfigurationManager.AppSettings["password"]);
 
             foreach (var emp in employees.Where(e => "EPRUIZHW0249" == e.workstation ))
+            {
+                PrintEmployee(emp);
+            }
+        }
+
+        public static void WithProviderStartsWith()
+        {
+            var employees = new E3SEntitySet<EmployeeEntity>(ConfigurationManager.AppSettings["user"], ConfigurationManager.AppSettings["password"]);
+
+            foreach (var emp in employees.Where(e => e.workstation.StartsWith("EPRUIZH")))
+            {
+                PrintEmployee(emp);
+            }
+        }
+
+        public static void WithProviderEndsWith()
+        {
+            var employees = new E3SEntitySet<EmployeeEntity>(ConfigurationManager.AppSettings["user"], ConfigurationManager.AppSettings["password"]);
+
+            foreach (var emp in employees.Where(e => e.nativename.EndsWith("зькина Екатерина Евгеньевна")))
+            {
+                PrintEmployee(emp);
+            }
+        }
+
+        public static void WithProviderContains()
+        {
+            var employees = new E3SEntitySet<EmployeeEntity>(ConfigurationManager.AppSettings["user"], ConfigurationManager.AppSettings["password"]);
+
+            foreach (var emp in employees.Where(e => e.nativename.Contains("зькина Екатерина Евгень")))
             {
                 PrintEmployee(emp);
             }
