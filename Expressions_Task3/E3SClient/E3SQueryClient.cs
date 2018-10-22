@@ -30,9 +30,7 @@ namespace Expressions_Task3.E3SClient
 			HttpClient client = CreateClient();
 			var requestGenerator = new FTSRequestGenerator(BaseAddress);
 
-		    var queryParam = new List<string> {query};
-
-            Uri request = requestGenerator.GenerateRequestUrl<T>(queryParam, start, limit);
+            Uri request = requestGenerator.GenerateRequestUrl<T>(query, start, limit);
 
             var resultString = client.GetStringAsync(request).Result;
 
@@ -40,7 +38,7 @@ namespace Expressions_Task3.E3SClient
 		}
 
 
-		public IEnumerable SearchFTS(Type type, List<string>query, int start = 0, int limit = 0)
+		public IEnumerable SearchFTS(Type type, string query, int start = 0, int limit = 0)
 		{
 			HttpClient client = CreateClient();
 			var requestGenerator = new FTSRequestGenerator(BaseAddress);

@@ -19,23 +19,21 @@ namespace Expressions_Task3.E3SClient
 			BaseAddress = baseAddress;
 		}
 
-		public Uri GenerateRequestUrl<T>(List<string> query = null, int start = 0, int limit = 10)
+		public Uri GenerateRequestUrl<T>(string query = "*", int start = 0, int limit = 10)
 		{
 			return GenerateRequestUrl(typeof(T), query, start, limit);
 		}
 
-		public Uri GenerateRequestUrl(Type type, List<string> query = null, int start = 0, int limit = 10)
+		public Uri GenerateRequestUrl(Type type, string query = "*", int start = 0, int limit = 10)
 		{
 			string metaTypeName = GetMetaTypeName(type);
 
-		    if (query == null)
-		    {
-		        query = new List<string>{"*"};
-		    }
-
 			var ftsQueryRequest = new FTSQueryRequest
 			{
-				Statements = query.Select(s=>new Statement{Query = s}).ToList(),
+				Statements = new List<Statement>
+				{
+                    new Statement{Query = query}
+				} ,
 				Start = start,
 				Limit = limit
 			};
