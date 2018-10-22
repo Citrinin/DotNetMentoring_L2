@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using Expressions_Task3.E3SClient;
@@ -17,6 +18,7 @@ namespace Expressions_Task3
             WithProviderStartsWith();
             WithProviderEndsWith();
             WithProviderContains();
+            WithProviderAndQuery();
 
             Console.ReadKey();
         }
@@ -35,7 +37,7 @@ namespace Expressions_Task3
         public static void WithoutProviderNonGeneric()
         {
             var client = new E3SQueryClient(ConfigurationManager.AppSettings["user"], ConfigurationManager.AppSettings["password"]);
-            var res = client.SearchFTS(typeof(EmployeeEntity), "workstation:(EPBYMINW7893)", 0, 10);
+            var res = client.SearchFTS(typeof(EmployeeEntity), new List<string>{"workstation:(EPBYMINW7893)"}, 0, 10);
 
             foreach (var emp in res.OfType<EmployeeEntity>())
             {
@@ -88,6 +90,17 @@ namespace Expressions_Task3
             var employees = new E3SEntitySet<EmployeeEntity>(ConfigurationManager.AppSettings["user"], ConfigurationManager.AppSettings["password"]);
 
             foreach (var emp in employees.Where(e => e.nativename.Contains("зькина Екатерина Евгень")))
+            {
+                PrintEmployee(emp);
+            }
+        }
+
+
+        public static void WithProviderAndQuery()
+        {
+            var employees = new E3SEntitySet<EmployeeEntity>(ConfigurationManager.AppSettings["user"], ConfigurationManager.AppSettings["password"]);
+
+            foreach (var emp in employees.Where(e => e.firstname =="Aliaksandr" && e.lastname == "Fiodarau"))
             {
                 PrintEmployee(emp);
             }

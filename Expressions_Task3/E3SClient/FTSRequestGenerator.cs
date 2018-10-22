@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Newtonsoft.Json;
 
 namespace Expressions_Task3.E3SClient
@@ -18,23 +19,23 @@ namespace Expressions_Task3.E3SClient
 			BaseAddress = baseAddress;
 		}
 
-		public Uri GenerateRequestUrl<T>(string query = "*", int start = 0, int limit = 10)
+		public Uri GenerateRequestUrl<T>(List<string> query = null, int start = 0, int limit = 10)
 		{
 			return GenerateRequestUrl(typeof(T), query, start, limit);
 		}
 
-		public Uri GenerateRequestUrl(Type type, string query = "*", int start = 0, int limit = 10)
+		public Uri GenerateRequestUrl(Type type, List<string> query = null, int start = 0, int limit = 10)
 		{
 			string metaTypeName = GetMetaTypeName(type);
 
+		    if (query == null)
+		    {
+		        query = new List<string>{"*"};
+		    }
+
 			var ftsQueryRequest = new FTSQueryRequest
 			{
-				Statements = new List<Statement>
-				{
-					new Statement {
-						Query = query
-					}
-				},
+				Statements = query.Select(s=>new Statement{Query = s}).ToList(),
 				Start = start,
 				Limit = limit
 			};
