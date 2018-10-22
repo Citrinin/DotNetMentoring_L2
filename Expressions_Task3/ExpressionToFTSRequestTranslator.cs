@@ -9,15 +9,13 @@ namespace Expressions_Task3
     public class ExpressionToFTSRequestTranslator : ExpressionVisitor
     {
         StringBuilder resultString;
-        List<string> resultList;
 
-        public List<string> Translate(Expression exp)
+        public string Translate(Expression exp)
         {
             resultString = new StringBuilder();
-            resultList = new List<string>();
             Visit(exp);
 
-            return resultList.Count == 0 ? (new List<string> {resultString.ToString()}) : resultList;
+            return resultString.ToString();
         }
 
         protected override Expression VisitMethodCall(MethodCallExpression node)
@@ -103,10 +101,8 @@ namespace Expressions_Task3
                 case ExpressionType.AndAlso:
                 {
                     Visit(node.Left);
-                    resultList.Add(resultString.ToString());
-                    resultString = new StringBuilder();
+                    resultString.Append(" AND ");
                     Visit(node.Right);
-                    resultList.Add(resultString.ToString());
                     break;
                 }
                 default:

@@ -37,7 +37,7 @@ namespace Expressions_Task3
         public static void WithoutProviderNonGeneric()
         {
             var client = new E3SQueryClient(ConfigurationManager.AppSettings["user"], ConfigurationManager.AppSettings["password"]);
-            var res = client.SearchFTS(typeof(EmployeeEntity), new List<string>{"workstation:(EPBYMINW7893)"}, 0, 10);
+            var res = client.SearchFTS(typeof(EmployeeEntity), "workstation:(EPBYMINW7893)", 0, 10);
 
             foreach (var emp in res.OfType<EmployeeEntity>())
             {
