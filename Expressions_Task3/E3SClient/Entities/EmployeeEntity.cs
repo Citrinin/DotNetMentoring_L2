@@ -157,43 +157,43 @@ namespace Expressions_Task3.E3SClient.Entities
 	public class EmployeeEntity : E3SEntity
 	{
 		[JsonProperty]
-		double entityBoost { get; set; }
+		public double entityBoost { get; set; }
 
 		[JsonProperty]
-		double documentBoost { get; set; }
+		public double documentBoost { get; set; }
 
 		[JsonProperty]
-		List<string> phone;
+		public List<string> phone;
 
 		[JsonProperty]
-		Skills skill { get; set; }
+		public Skills skill { get; set; }
 
 		[JsonProperty]
-		string firstname { get; set; }
+		public string firstname { get; set; }
 
 		[JsonProperty]
-		string lastname { get; set; }
+		public string lastname { get; set; }
 
 		[JsonProperty]
-		List<string> fullname { get; set; }
+		public List<string> fullname { get; set; }
 
 		[JsonProperty]
-		List<string> country { get; set; }
+		public List<string> country { get; set; }
 
 		[JsonProperty]
-		List<string> city { get; set; }
+		public List<string> city { get; set; }
 
 		[JsonProperty]
-		List<string> email { get; set; }
+		public List<string> email { get; set; }
 
 		[JsonProperty]
-		List<string> skype { get; set; }
+		public List<string> skype { get; set; }
 
 		[JsonProperty]
-		Dictionary<string, List<Social>> social { get; set; }
+		public Dictionary<string, List<Social>> social { get; set; }
 
 		[JsonProperty]
-		List<string> attachment { get; set; }
+		public List<string> attachment { get; set; }
 
 		[JsonProperty]
 		public string manager { get; set; }
@@ -211,10 +211,10 @@ namespace Expressions_Task3.E3SClient.Entities
 		public string projectall { get; set; }
 
 		[JsonProperty]
-		List<string> trainer { get; set; }
+		public List<string> trainer { get; set; }
 
 		[JsonProperty]
-		List<string> kb { get; set; }
+		public List<string> kb { get; set; }
 
 		[JsonProperty]
 		public string certificate { get; set; }
@@ -242,13 +242,13 @@ namespace Expressions_Task3.E3SClient.Entities
 
 
 		[JsonProperty]
-		List<string> jobfunction { get; set; }
+		public List<string> jobfunction { get; set; }
 
 		[JsonProperty]
-		List<Recognition> recognition { get; set; }
+		public List<Recognition> recognition { get; set; }
 
 		[JsonProperty]
-		List<Badge> badge { get; set; }
+		public List<Badge> badge { get; set; }
 
 		[JsonProperty]
 		public string dismissal { get; set; }
