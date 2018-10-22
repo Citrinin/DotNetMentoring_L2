@@ -34,20 +34,31 @@ namespace Expressions_Task3
 		{
 			switch (node.NodeType)
 			{
-				case ExpressionType.Equal:
-					if (!(node.Left.NodeType == ExpressionType.MemberAccess))
-						throw new NotSupportedException(string.Format("Left operand should be property or field", node.NodeType));
+			    case ExpressionType.Equal:
+			        if (node.Left.NodeType == ExpressionType.MemberAccess &&
+			            node.Right.NodeType == ExpressionType.Constant)
+			        {
+			            Visit(node.Left);
+			            resultString.Append("(");
+			            Visit(node.Right);
+			            resultString.Append(")");
+                    } else if (node.Right.NodeType == ExpressionType.MemberAccess &&
+                               node.Left.NodeType == ExpressionType.Constant)
+			        {
+			            Visit(node.Right);
+			            resultString.Append("(");
+			            Visit(node.Left);
+			            resultString.Append(")");
+                    }
+			        else
+			        {
+			            throw new NotSupportedException(string.Format("Incorrect fields format", node.NodeType));
+                    }
 
-					if (!(node.Right.NodeType == ExpressionType.Constant))
-						throw new NotSupportedException(string.Format("Right operand should be constant", node.NodeType));
 
-					Visit(node.Left);
-					resultString.Append("(");
-					Visit(node.Right);
-					resultString.Append(")");
-					break;
+			        break;
 
-				default:
+                default:
 					throw new NotSupportedException(string.Format("Operation {0} is not supported", node.NodeType));
 			};
 

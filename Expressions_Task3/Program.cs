@@ -13,6 +13,7 @@ namespace Expressions_Task3
             WithoutProvider();
             WithoutProviderNonGeneric();
             WithProvider();
+            WithProviderSwitchPosition();
 
             Console.ReadKey();
         }
@@ -24,7 +25,7 @@ namespace Expressions_Task3
 
             foreach (var emp in res)
             {
-                Console.WriteLine("{0} {1}", emp.nativename, emp.startworkdate);
+                PrintEmployee(emp);
             }
         }
 
@@ -35,7 +36,7 @@ namespace Expressions_Task3
 
             foreach (var emp in res.OfType<EmployeeEntity>())
             {
-                Console.WriteLine("{0} {1}", emp.nativename, emp.startworkdate);
+                PrintEmployee(emp);
             }
         }
 
@@ -45,8 +46,23 @@ namespace Expressions_Task3
 
             foreach (var emp in employees.Where(e => e.workstation == "EPRUIZHW0249"))
             {
-                Console.WriteLine("{0} {1}", emp.nativename, emp.startworkdate);
+                PrintEmployee(emp);
             }
+        }
+
+        public static void WithProviderSwitchPosition()
+        {
+            var employees = new E3SEntitySet<EmployeeEntity>(ConfigurationManager.AppSettings["user"], ConfigurationManager.AppSettings["password"]);
+
+            foreach (var emp in employees.Where(e => "EPRUIZHW0249" == e.workstation ))
+            {
+                PrintEmployee(emp);
+            }
+        }
+
+        public static void PrintEmployee(EmployeeEntity emp)
+        {
+            Console.WriteLine($"{emp.nativename} {emp.country[0]} {emp.city[0]} {emp.office}");
         }
     }
 }
