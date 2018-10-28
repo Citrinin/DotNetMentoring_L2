@@ -38,6 +38,9 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Expressions_Task3", "Expressions_Task3\Expressions_Task3.csproj", "{F3498CB5-3978-4231-96F6-0ECE96060B96}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UnmanagedCode", "UnmanagedCode", "{E430705A-AA68-4E94-8384-DC9BEB971FF6}"
+	ProjectSection(SolutionItems) = preProject
+		PowerStateManaged\test.html = PowerStateManaged\test.html
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerStateManaged", "PowerStateManaged\PowerStateManaged.csproj", "{C393479E-D79C-4B4F-BD36-93B4857CE089}"
 EndProject
