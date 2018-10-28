@@ -5,7 +5,7 @@
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{C393479E-D79C-4B4F-BD36-93B4857CE089}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>PowerStateManaged</RootNamespace>
     <AssemblyName>PowerStateManaged</AssemblyName>
@@ -43,8 +43,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Class1.cs" />
+    <Compile Include="PowerManagement.cs" />
+    <Compile Include="PowerManagementInterop.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SYSTEM_BATTERY_STATE.cs" />
+    <Compile Include="SYSTEM_POWER_INFORMATION.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
