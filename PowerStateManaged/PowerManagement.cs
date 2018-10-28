@@ -3,7 +3,12 @@ using System.Runtime.InteropServices;
 
 namespace PowerStateManaged
 {
-    public class PowerManagement
+    //Command for registration
+    //"C:\Windows\Microsoft.NET\Framework\v4.0.30319\regasm.exe" PowerStateManaged.dll /tlb /codebase
+    [ComVisible(true)]
+    [Guid("4F5C361D-CE3F-4968-8391-5BE52D6820A3")]
+    [ClassInterface(ClassInterfaceType.None)]
+    public class PowerManagement : IPowerManagement
     {
         private const int LastSleepTime = 15;
         private const int LastWakeTime = 14;

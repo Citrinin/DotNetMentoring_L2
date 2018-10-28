@@ -1,0 +1,36 @@
+<html>
+
+<head>
+</head>
+
+<body>
+    <h4>
+        To run VBScript press F12 and set Emulation mode to IE 10 or lower
+    </h4>
+    <button onclick="pm.SetSystemSleepState()">Sleep</button>
+    <button onclick="pm.SetSystemHibernationState()">Hibernation</button>
+    <button onclick="pm.ReserveHibernationFile()">Reserve hibernation file</button>
+    <button onclick="pm.RemoveHibernationFile()">Remove hibernation file</button>
+    <script type="text/vbscript">
+
+        set pm = CreateObject("PowerStateManaged.PowerManagement")
+
+        sleepTime = pm.GetLastSleepTime()
+        document.write("<pre> Last sleep time - " & sleepTime & "</pre>")
+
+        wakeTime = pm.GetLastWakeTime()
+        document.write("<pre> Last wake time - " & wakeTime & "</pre>")
+
+        battery = pm.GetBatteryState()
+        document.write("<pre>" & battery & "</pre>")
+
+        powerInformation = pm.GetPowerInformation()
+        document.write("<pre>" & powerInformation & "</pre>")
+
+
+
+
+    </script>
+</body>
+
+</html>
