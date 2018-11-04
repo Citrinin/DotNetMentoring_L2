@@ -21,6 +21,12 @@ namespace ImageWatcher
         private readonly AutoResetEvent _newFileEvent;
         private readonly CancellationTokenSource _cancellationTokenSource;
 
+        private Document _document;
+        private Section _section;
+        private PdfDocumentRenderer _renderer;
+
+        private readonly int _timeout;
+
         public ImagesWatchingService(string inputDirectory, string outputDirectory, string prefix)
         {
             _inputDirectory = inputDirectory;
@@ -48,67 +54,48 @@ namespace ImageWatcher
 
             _cancellationTokenSource = new CancellationTokenSource();
             _newFileEvent = new AutoResetEvent(false);
+            _timeout = 10000;
+
+            CreateNewDocument();
         }
 
         public void Start()
         {
+
+            var token = _cancellationTokenSource.Token;
             Task.Run(()=>
             {
-                //var createNewDocument = true;
-                //Section section;
-
-                //Document document;
-
-
                 do
                 {
-                    var document = new Document();
-                    var section = document.AddSection();
-
-                    var render = new PdfDocumentRenderer();
-                    render.Document = document;
-                    document.DefaultPageSetup.HeaderDistance = 0;
-                    document.DefaultPageSetup.FooterDistance = 0;
-
-                    var page = 0;
-
-
-                    foreach (var file in Directory.EnumerateFiles(_inputDirectory))
+                    foreach (var inFile in Directory.EnumerateFiles(_inputDirectory))
                     {
-                        var inFile = file;
-                        var outFile = Path.Combine(_tempDirectory, Path.GetFileName(file));
+
+                        var outFile = Path.Combine(_tempDirectory, Path.GetFileName(inFile));
 
                         if (TryOpenFile(inFile, 3))
                         {
                             File.Move(inFile, outFile);
-                            page++;
-                            var img = section.AddImage(outFile);
-                            img.Height = document.DefaultPageSetup.PageHeight;
-                            img.Width = document.DefaultPageSetup.PageWidth;
 
+                            var img = _section.AddImage(outFile);
+                            img.Height = _document.DefaultPageSetup.PageHeight;
+                            img.Width = _document.DefaultPageSetup.PageWidth;
                         }
                     }
 
-
-                    render.RenderDocument();
-                    render.Save($"{GetPdfFileVersion($"{_outputDirectory}/result")}.pdf");
-
-                    foreach (var file in Directory.EnumerateFiles(_tempDirectory))
+                    if (!_newFileEvent.WaitOne(_timeout))
                     {
-                        if (TryOpenFile(file, 3))
-                        {
-                            File.Delete(file);
-                        }
+                        SaveAndCreateNewDocument();
                     }
                 }
-                while (_newFileEvent.WaitOne());
-            }, _cancellationTokenSource.Token);
+                while (!token.IsCancellationRequested);
+            }, token);
         }
 
         public void Stop()
         {
-            _fileSystemWatcher.EnableRaisingEvents = false;
             _cancellationTokenSource.Cancel();
+            _fileSystemWatcher.EnableRaisingEvents = false;
+            SaveDocument();
         }
 
         private void FileSystemWatcherOnCreated(object sender, FileSystemEventArgs e)
@@ -157,6 +144,37 @@ namespace ImageWatcher
 
                 return fileName;
             }
+        }
+
+        private void SaveDocument()
+        {
+            _renderer.RenderDocument();
+            _renderer.Save($"{GetPdfFileVersion($"{_outputDirectory}/result")}.pdf");
+
+            foreach (var file in Directory.EnumerateFiles(_tempDirectory))
+            {
+                if (TryOpenFile(file, 3))
+                {
+                    File.Delete(file);
+                }
+            }
+        }
+
+        private void CreateNewDocument()
+        {
+            _document = new Document();
+            _section = _document.AddSection();
+
+            _renderer = new PdfDocumentRenderer
+            {
+                Document = _document
+            };
+        }
+
+        private void SaveAndCreateNewDocument()
+        {
+            SaveDocument();
+            CreateNewDocument();
         }
     }
 }
