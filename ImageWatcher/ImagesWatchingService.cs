@@ -16,11 +16,13 @@ namespace ImageWatcher
         private readonly string _inputDirectory;
         private readonly string _outputDirectory;
         private readonly string _tempDirectory;
+        private readonly string _coruptedDirectory;
         private readonly string _prefix;
 
         private readonly AutoResetEvent _newFileEvent;
         private readonly CancellationTokenSource _cancellationTokenSource;
 
+        private Task _workTask;
         private Document _document;
         private Section _section;
         private PdfDocumentRenderer _renderer;
@@ -35,32 +37,13 @@ namespace ImageWatcher
             _inputDirectory = inputDirectory;
             _outputDirectory = outputDirectory;
             _tempDirectory = "temp";
+            _coruptedDirectory = "corupted";
             _prefix = prefix;
 
-            if (!Directory.Exists(_inputDirectory))
-            {
-                Directory.CreateDirectory(_inputDirectory);
-            }
-
-            if (!Directory.Exists(_outputDirectory))
-            {
-                Directory.CreateDirectory(_outputDirectory);
-            }
-
-            if (!Directory.Exists(_tempDirectory))
-            {
-                Directory.CreateDirectory(_tempDirectory);
-            }
-            else
-            {
-                foreach (var file in Directory.EnumerateFiles(_tempDirectory))
-                {
-                    if (TryOpenFile(file, 3))
-                    {
-                        File.Delete(file);
-                    }
-                }
-            }
+            CheckDirectory(_inputDirectory, false);
+            CheckDirectory(_outputDirectory, true);
+            CheckDirectory(_tempDirectory, true);
+            CheckDirectory(_coruptedDirectory, true);
 
             _fileSystemWatcher = new FileSystemWatcher(_inputDirectory);
             _fileSystemWatcher.Created += FileSystemWatcherOnCreated;
@@ -78,33 +61,39 @@ namespace ImageWatcher
         public void Start()
         {
             var token = _cancellationTokenSource.Token;
-            Task.Run(()=>
+            _workTask = Task.Run(()=>
             {
                 do
                 {
                     foreach (var inFile in Directory.EnumerateFiles(_inputDirectory))
                     {
+                        if (!Regex.IsMatch(inFile, $@"(?<={_prefix}_)(\d+).(?=\.(jpeg|jpg|png)$)"))
+                        {
+                            continue;
+                        }
+
                         var outFile = Path.Combine(_tempDirectory, Path.GetFileName(inFile));
 
                         if (TryOpenFile(inFile, 3))
                         {
-                            if (CheckIfImageContainsStopCode(inFile))
-                            {
-                                File.Move(inFile, outFile);
-                                Console.WriteLine("new file - barcode");
-                                SaveAndCreateNewDocument();
-                                continue;
-                            }
-
-                            if (!CheckIfImageContinuingSequence(inFile))
-                            {
-                                Console.WriteLine("new file - end of sequence");
-                                SaveAndCreateNewDocument();
-                            }
-                            File.Move(inFile, outFile);
                             try
                             {
+                                if (CheckIfImageContainsStopCode(inFile))
+                                {
+                                    File.Delete(inFile);
+                                    Console.WriteLine("new file - barcode");
+                                    SaveAndCreateNewDocument();
+                                    continue;
+                                }
+
+                                if (!CheckIfImageContinuingSequence(inFile))
+                                {
+                                    Console.WriteLine("new file - end of sequence");
+                                    SaveAndCreateNewDocument();
+                                }
+
                                 Console.WriteLine("img to pdf");
+                                File.Move(inFile, outFile);
                                 var img = _section.AddImage(outFile);
                                 img.Height = _document.DefaultPageSetup.PageHeight;
                                 img.Width = _document.DefaultPageSetup.PageWidth;
@@ -113,23 +102,31 @@ namespace ImageWatcher
                             catch (Exception)
                             {
                                 Console.WriteLine("exception - wrong format");
+                                if (!File.Exists(outFile))
+                                {
+                                    File.Move(inFile, outFile);
+                                }
+                                MoveFilesToCoruptedFolder();
+                                CreateNewDocument();
                             }
                         }
                     }
 
                     if (!_newFileEvent.WaitOne(_timeout) && !_isDocumentEmpty)
                     {
-                        SaveAndCreateNewDocument();
                         Console.WriteLine("new file - timeout");
+                        SaveAndCreateNewDocument();
                     }
                 }
                 while (!token.IsCancellationRequested);
+                Console.WriteLine("End of work");
             }, token);
         }
 
         public void Stop()
         {
             _cancellationTokenSource.Cancel();
+            _workTask.Wait();
             _fileSystemWatcher.EnableRaisingEvents = false;
             SaveDocument();
         }
@@ -157,14 +154,14 @@ namespace ImageWatcher
             return false;
         }
 
-        private static string GetPdfFileVersion(string fileName)
+        private static string GetFileVersion(string fileName, string extension)
         {
             while (true)
             {
-                var existingFileName = fileName + ".pdf";
+                var existingFileName = fileName + extension;
                 if (File.Exists(existingFileName))
                 {
-                    var match = Regex.Match(existingFileName, @"(?<=\()\d+(?=\).pdf)");
+                    var match = Regex.Match(existingFileName, $@"(?<=\()\d+(?=\).{extension})");
 
                     if (match.Value == "")
                     {
@@ -185,14 +182,10 @@ namespace ImageWatcher
         {
             var fileNumberMatch = Regex.Match(inFile, $@"(?<={_prefix}_)(\d+).(?=\.(jpeg|jpg|png)$)");
             var currentImageSequenceNumber = int.Parse(fileNumberMatch.Value);
+            var result = _imageSequenceNumber + 1 == currentImageSequenceNumber || _isDocumentEmpty;
 
-            if (_imageSequenceNumber + 1 == currentImageSequenceNumber || _isDocumentEmpty)
-            {
-                _imageSequenceNumber = currentImageSequenceNumber;
-                return true;
-            }
-
-            return false;
+            _imageSequenceNumber = currentImageSequenceNumber;
+            return result;
         }
 
         private bool CheckIfImageContainsStopCode(string imgFile)
@@ -200,20 +193,25 @@ namespace ImageWatcher
             using (var bmp = (Bitmap)Image.FromFile(imgFile))
             {
                 var result = _barcodeReader.Decode(bmp);
-                return string.Equals(result?.Text, "next document", StringComparison.OrdinalIgnoreCase);
+                return string.Equals(result?.Text, "new document", StringComparison.OrdinalIgnoreCase);
             }
         }
 
         private void SaveDocument()
         {
             _renderer.RenderDocument();
-            _renderer.Save($"{GetPdfFileVersion($"{_outputDirectory}/result")}.pdf");
+            _renderer.Save($"{GetFileVersion($"{_outputDirectory}/result", "pdf")}.pdf");
+            ClearDirectory(_tempDirectory);
+        }
 
+        private void MoveFilesToCoruptedFolder()
+        {
             foreach (var file in Directory.EnumerateFiles(_tempDirectory))
             {
+                var outFile = Path.Combine(_coruptedDirectory, Path.GetFileName(file));
                 if (TryOpenFile(file, 3))
                 {
-                    File.Delete(file);
+                    File.Move(file, outFile);
                 }
             }
         }
@@ -234,6 +232,29 @@ namespace ImageWatcher
         {
             SaveDocument();
             CreateNewDocument();
+        }
+
+        private void ClearDirectory(string directoryName)
+        {
+            foreach (var file in Directory.EnumerateFiles(directoryName))
+            {
+                if (TryOpenFile(file, 3))
+                {
+                    File.Delete(file);
+                }
+            }
+        }
+
+        private void CheckDirectory(string directoryName, bool clearDirectory)
+        {
+            if (!Directory.Exists(directoryName))
+            {
+                Directory.CreateDirectory(directoryName);
+            }
+            else if (clearDirectory)
+            {
+                ClearDirectory(directoryName);
+            }
         }
     }
 }
