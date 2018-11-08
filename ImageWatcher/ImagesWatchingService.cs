@@ -113,9 +113,10 @@ namespace ImageWatcher
                             img.Width = _document.DefaultPageSetup.PageWidth;
                             _isDocumentEmpty = false;
                         }
-                        catch (Exception)
+                        catch (Exception e)
                         {
                             _log.Info("exception - wrong format");
+                            _log.Error(e.ToString());
                             if (!File.Exists(outFile))
                             {
                                 File.Move(inFile, outFile);
@@ -246,7 +247,7 @@ namespace ImageWatcher
 
         private string GetTimeStamp()
         {
-            return DateTime.Now.ToString().Replace(':', '-');
+            return DateTime.Now.ToString().Replace(':', '-').Replace('\\','-');
         }
 
         //private void CopyImages()
