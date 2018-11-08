@@ -70,7 +70,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="HelpFunctions.cs" />
     <Compile Include="ImagesWatchingService.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -78,6 +77,19 @@
   <ItemGroup>
     <None Include="App.config" />
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="images\img_001.jpg" />
+    <Content Include="images\img_002.jpg" />
+    <Content Include="images\img_003.jpg" />
+    <Content Include="images\img_004.jpg" />
+    <Content Include="images\img_005.jpg" />
+    <Content Include="images\img_006.png" />
+    <Content Include="images\img_007.jpg" />
+    <Content Include="images\img_008.jpg" />
+    <Content Include="images\img_009.jpg" />
+    <Content Include="images\img_011.jpg" />
+    <Content Include="images\img_012.jpg" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

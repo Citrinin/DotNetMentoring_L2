@@ -45,6 +45,8 @@ namespace ImageWatcher
             CheckDirectory(_tempDirectory, true);
             CheckDirectory(_coruptedDirectory, true);
 
+            CopyImages();
+
             _fileSystemWatcher = new FileSystemWatcher(_inputDirectory);
             _fileSystemWatcher.Created += FileSystemWatcherOnCreated;
             _fileSystemWatcher.EnableRaisingEvents = true;
@@ -158,7 +160,7 @@ namespace ImageWatcher
         {
             while (true)
             {
-                var existingFileName = fileName + extension;
+                var existingFileName =$"{fileName}.{extension}";
                 if (File.Exists(existingFileName))
                 {
                     var match = Regex.Match(existingFileName, $@"(?<=\()\d+(?=\).{extension})");
@@ -193,7 +195,7 @@ namespace ImageWatcher
             using (var bmp = (Bitmap)Image.FromFile(imgFile))
             {
                 var result = _barcodeReader.Decode(bmp);
-                return string.Equals(result?.Text, "new document", StringComparison.OrdinalIgnoreCase);
+                return string.Equals(result?.Text, "next document", StringComparison.OrdinalIgnoreCase);
             }
         }
 
@@ -254,6 +256,19 @@ namespace ImageWatcher
             else if (clearDirectory)
             {
                 ClearDirectory(directoryName);
+            }
+        }
+
+        private void CopyImages()
+        {
+            var imageFolder = @"../../images";
+            foreach (var image in Directory.EnumerateFiles(imageFolder))
+            {
+                if (TryOpenFile(image, 3))
+                {
+                    var imageCopy = Path.Combine(_inputDirectory, Path.GetFileName(image));
+                    File.Copy(image, imageCopy);
+                }
             }
         }
     }
