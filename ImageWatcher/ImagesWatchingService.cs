@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.Rendering;
 using NLog;
 using ZXing;
+
 
 namespace ImageWatcher
 {
@@ -16,7 +18,7 @@ namespace ImageWatcher
         private readonly string _inputDirectory;
         private readonly string _outputDirectory;
         private readonly string _tempDirectory;
-        private readonly string _coruptedDirectory;
+        private readonly string _corruptedDirectory;
         private readonly string _prefix;
 
         private readonly ManualResetEvent _stopWorkEvent;
@@ -39,14 +41,14 @@ namespace ImageWatcher
             _inputDirectory = inputDirectory;
             _outputDirectory = outputDirectory;
             _tempDirectory = "temp";
-            _coruptedDirectory = "corupted";
+            _corruptedDirectory = "corrupted";
             _prefix = prefix;
             _log = logger.GetCurrentClassLogger();
 
             CheckDirectory(_inputDirectory, false);
             CheckDirectory(_outputDirectory, false);
             CheckDirectory(_tempDirectory, true);
-            CheckDirectory(_coruptedDirectory, false);
+            CheckDirectory(_corruptedDirectory, false);
 
             _fileSystemWatcher = new FileSystemWatcher(_inputDirectory);
             _fileSystemWatcher.Created += FileSystemWatcherOnCreated;
@@ -193,10 +195,10 @@ namespace ImageWatcher
         private void MoveFilesToCoruptedFolder()
         {
             var time = GetTimeStamp();
-            Directory.CreateDirectory(Path.Combine(_coruptedDirectory, time));
+            Directory.CreateDirectory(Path.Combine(_corruptedDirectory, time));
             foreach (var file in Directory.EnumerateFiles(_tempDirectory))
             {
-                var outFile = Path.Combine(_coruptedDirectory, time, Path.GetFileName(file));
+                var outFile = Path.Combine(_corruptedDirectory, time, Path.GetFileName(file));
                 if (TryOpenFile(file, 3))
                 {
                     File.Move(file, outFile);
@@ -247,20 +249,7 @@ namespace ImageWatcher
 
         private string GetTimeStamp()
         {
-            return DateTime.Now.ToString().Replace(':', '-').Replace('\\','-');
+            return new string(DateTime.Now.ToString().Where(char.IsDigit).ToArray());
         }
-
-        //private void CopyImages()
-        //{
-        //    var imageFolder = @"../../images";
-        //    foreach (var image in Directory.EnumerateFiles(imageFolder))
-        //    {
-        //        if (TryOpenFile(image, 3))
-        //        {
-        //            var imageCopy = Path.Combine(_inputDirectory, Path.GetFileName(image));
-        //            File.Copy(image, imageCopy);
-        //        }
-        //    }
-        //}
     }
 }
