@@ -1,119 +1,96 @@
 ﻿using System;
-using System.Drawing;
+using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading;
+using ImageWatcher.Configuration;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.Rendering;
 using NLog;
-using ZXing;
+using ConfigurationManager = System.Configuration.ConfigurationManager;
 
 
 namespace ImageWatcher
 {
     public class ImagesWatchingService
     {
-        private readonly FileSystemWatcher _fileSystemWatcher;
-        private readonly string _inputDirectory;
-        private readonly string _outputDirectory;
-        private readonly string _tempDirectory;
-        private readonly string _corruptedDirectory;
-        private readonly string _prefix;
 
         private readonly ManualResetEvent _stopWorkEvent;
-        private readonly AutoResetEvent _newFileEvent;
-
-        private readonly Thread _workThread;
-        private Document _document;
-        private Section _section;
-        private PdfDocumentRenderer _renderer;
-        private bool _isDocumentEmpty;
-        private int _imageSequenceNumber;
-        private readonly BarcodeReader _barcodeReader;
-
+        private readonly List<Thread> _workThreads;
+        private readonly List<WatchingThreadParameter> _workThreadParameters;
         private readonly int _timeout;
-
+        private readonly ImageWatcherConfigurationSection _configuration;
         private static Logger _log;
 
-        public ImagesWatchingService(string inputDirectory, string outputDirectory, string prefix, LogFactory logger)
+        public ImagesWatchingService(LogFactory logger)
         {
-            _inputDirectory = inputDirectory;
-            _outputDirectory = outputDirectory;
-            _tempDirectory = "temp";
-            _corruptedDirectory = "corrupted";
-            _prefix = prefix;
             _log = logger.GetCurrentClassLogger();
+            _configuration =
+                (ImageWatcherConfigurationSection)ConfigurationManager.GetSection("imageWatcherConfiguration");
+            _workThreadParameters = new List<WatchingThreadParameter>();
+            _workThreads = new List<Thread>();
 
-            CheckDirectory(_inputDirectory, false);
-            CheckDirectory(_outputDirectory, false);
-            CheckDirectory(_tempDirectory, true);
-            CheckDirectory(_corruptedDirectory, false);
-
-            _fileSystemWatcher = new FileSystemWatcher(_inputDirectory);
-            _fileSystemWatcher.Created += FileSystemWatcherOnCreated;
-
-
-            _workThread = new Thread(WorkProcedure);
+            foreach (var imagesWatcher in _configuration.ImagesWatchers)
+            {
+                _workThreadParameters.Add(new WatchingThreadParameter((ImagesWatcherElement)imagesWatcher));
+            }
             _stopWorkEvent = new ManualResetEvent(false);
-            _newFileEvent = new AutoResetEvent(false);
             _timeout = 10000;
-
-            _barcodeReader = new BarcodeReader() { AutoRotate = true };
         }
 
         public void Start()
         {
-            _fileSystemWatcher.EnableRaisingEvents = true;
-            _workThread.Start();
+            _workThreadParameters.ForEach(threadParam =>
+            {
+                var thread = new Thread(WorkProcedure);
+                _workThreads.Add(thread);
+                thread.Start(threadParam);
+            });
         }
 
         public void Stop()
         {
             _stopWorkEvent.Set();
-            _fileSystemWatcher.EnableRaisingEvents = false;
-            _workThread.Join();
-            SaveDocument();
+            _workThreads.ForEach(thread => thread.Join());
         }
 
         private void WorkProcedure(object obj)
         {
-            CreateNewDocument();
+            var threadParameter = (WatchingThreadParameter)obj;
+            threadParameter.FileSystemWatcher.EnableRaisingEvents = true;
+            threadParameter.CreateNewDocument();
             do
             {
-                foreach (var inFile in Directory.EnumerateFiles(_inputDirectory))
+                foreach (var inFile in Directory.EnumerateFiles(threadParameter.InputFolder))
                 {
-                    if (!Regex.IsMatch(inFile, $@"(?<={_prefix}_)(\d+).(?=\.(jpeg|jpg|png)$)"))
+                    if (!Regex.IsMatch(inFile, $@"(?<={threadParameter.Prefix}_)(\d+).(?=\.(jpeg|jpg|png)$)"))
                     {
                         continue;
                     }
 
-                    var outFile = Path.Combine(_tempDirectory, Path.GetFileName(inFile));
+                    var outFile = Path.Combine(threadParameter.TempFolder, Path.GetFileName(inFile));
 
-                    if (TryOpenFile(inFile, 3))
+                    if (Utils.TryOpenFile(inFile, 3))
                     {
                         try
                         {
-                            if (CheckIfImageContainsStopCode(inFile))
+                            if (string.Equals(Utils.GetImageBarcodeValue(inFile), "next document", StringComparison.OrdinalIgnoreCase))
                             {
                                 File.Delete(inFile);
                                 _log.Info("new file - barcode");
-                                SaveAndCreateNewDocument();
+                                threadParameter.SaveAndCreateNewDocument();
                                 continue;
                             }
 
-                            if (!CheckIfImageContinuingSequence(inFile))
+                            if (!threadParameter.CheckIfImageContinuingSequence(inFile))
                             {
                                 _log.Info("new file - end of sequence");
-                                SaveAndCreateNewDocument();
+                                threadParameter.SaveAndCreateNewDocument();
                             }
 
                             _log.Info("img to pdf");
                             File.Move(inFile, outFile);
-                            var img = _section.AddImage(outFile);
-                            img.Height = _document.DefaultPageSetup.PageHeight;
-                            img.Width = _document.DefaultPageSetup.PageWidth;
-                            _isDocumentEmpty = false;
+                            threadParameter.AddImageToDocument(outFile);
                         }
                         catch (Exception e)
                         {
@@ -123,133 +100,129 @@ namespace ImageWatcher
                             {
                                 File.Move(inFile, outFile);
                             }
-                            MoveFilesToCoruptedFolder();
-                            CreateNewDocument();
+                            threadParameter.MoveFilesToCorruptedFolder();
+                            threadParameter.CreateNewDocument();
                         }
                     }
                 }
 
-                if (!_newFileEvent.WaitOne(_timeout) && !_isDocumentEmpty)
+                if (threadParameter.IsTimeoutOfNewDocumentEventExpired(_timeout))
                 {
                     _log.Info("new file - timeout");
-                    SaveAndCreateNewDocument();
+                    threadParameter.SaveAndCreateNewDocument();
                 }
             }
             while (!_stopWorkEvent.WaitOne(1000));
+            threadParameter.SaveDocument();
+            threadParameter.FileSystemWatcher.EnableRaisingEvents = false;
             _log.Info("End of work");
         }
 
-        private void FileSystemWatcherOnCreated(object sender, FileSystemEventArgs e)
+        class WatchingThreadParameter
         {
-            _newFileEvent.Set();
-        }
+            private Document _document;
+            private Section _section;
+            private PdfDocumentRenderer _renderer;
+            private bool _isDocumentEmpty;
+            private int _imageSequenceNumber;
 
-        private static bool TryOpenFile(string fileName, int tryCount)
-        {
-            for (var i = 0; i < tryCount; i++)
+            public WatchingThreadParameter(ImagesWatcherElement configurationImagesWatcher)
             {
-                try
+                InputFolder = configurationImagesWatcher.InFolder;
+                OutputFolder = configurationImagesWatcher.OutFolder;
+                CorruptedFolder = configurationImagesWatcher.CorruptedFolder;
+                TempFolder = Path.Combine(Path.GetTempPath(), "ImageWatcher", Guid.NewGuid().ToString());
+                Prefix = configurationImagesWatcher.Prefix;
+
+                Utils.CheckDirectory(InputFolder, false);
+                Utils.CheckDirectory(OutputFolder, false);
+                Utils.CheckDirectory(TempFolder, true);
+                Utils.CheckDirectory(CorruptedFolder, false);
+
+                AutoResetEvent = new AutoResetEvent(false);
+
+                FileSystemWatcher = new FileSystemWatcher(InputFolder);
+                FileSystemWatcher.Created += (sender, args) => AutoResetEvent.Set();
+            }
+
+            public FileSystemWatcher FileSystemWatcher { get; set; }
+
+            public AutoResetEvent AutoResetEvent { get; set; }
+
+            public string InputFolder { get; set; }
+
+            public string OutputFolder { get; set; }
+
+            public string TempFolder { get; set; }
+
+            public string CorruptedFolder { get; set; }
+
+            public string Prefix { get; set; }
+
+            public void SaveDocument()
+            {
+                if (!_isDocumentEmpty)
                 {
-                    var file = File.Open(fileName, FileMode.Open, FileAccess.Read, FileShare.None);
-                    file.Close();
-                    return true;
+                    _renderer.RenderDocument();
+                    _renderer.Save($"{OutputFolder}/result-{Utils.GetTimeStamp()}.pdf");
                 }
-                catch (IOException)
+
+                Utils.ClearDirectory(TempFolder);
+            }
+
+            public void MoveFilesToCorruptedFolder()
+            {
+                var time = Utils.GetTimeStamp();
+                Directory.CreateDirectory(Path.Combine(CorruptedFolder, time));
+                foreach (var file in Directory.EnumerateFiles(TempFolder))
                 {
-                    Thread.Sleep(5000);
-                }
-            }
-            return false;
-        }
-
-        private bool CheckIfImageContinuingSequence(string inFile)
-        {
-            var fileNumberMatch = Regex.Match(inFile, $@"(?<={_prefix}_)(\d+).(?=\.(jpeg|jpg|png)$)");
-            var currentImageSequenceNumber = int.Parse(fileNumberMatch.Value);
-            var result = _imageSequenceNumber + 1 == currentImageSequenceNumber || _isDocumentEmpty;
-
-            _imageSequenceNumber = currentImageSequenceNumber;
-            return result;
-        }
-
-        private bool CheckIfImageContainsStopCode(string imgFile)
-        {
-            using (var bmp = (Bitmap)Image.FromFile(imgFile))
-            {
-                var result = _barcodeReader.Decode(bmp);
-                return string.Equals(result?.Text, "next document", StringComparison.OrdinalIgnoreCase);
-            }
-        }
-
-        private void SaveDocument()
-        {
-            if (!_isDocumentEmpty)
-            {
-                _renderer.RenderDocument();
-                _renderer.Save($"{_outputDirectory}/result-{GetTimeStamp()}.pdf");
-            }
-
-            ClearDirectory(_tempDirectory);
-        }
-
-        private void MoveFilesToCoruptedFolder()
-        {
-            var time = GetTimeStamp();
-            Directory.CreateDirectory(Path.Combine(_corruptedDirectory, time));
-            foreach (var file in Directory.EnumerateFiles(_tempDirectory))
-            {
-                var outFile = Path.Combine(_corruptedDirectory, time, Path.GetFileName(file));
-                if (TryOpenFile(file, 3))
-                {
-                    File.Move(file, outFile);
-                }
-            }
-        }
-
-        private void CreateNewDocument()
-        {
-            _document = new Document();
-            _section = _document.AddSection();
-            _isDocumentEmpty = true;
-
-            _renderer = new PdfDocumentRenderer
-            {
-                Document = _document
-            };
-        }
-
-        private void SaveAndCreateNewDocument()
-        {
-            SaveDocument();
-            CreateNewDocument();
-        }
-
-        private void ClearDirectory(string directoryName)
-        {
-            foreach (var file in Directory.EnumerateFiles(directoryName))
-            {
-                if (TryOpenFile(file, 3))
-                {
-                    File.Delete(file);
+                    var outFile = Path.Combine(CorruptedFolder, time, Path.GetFileName(file));
+                    if (Utils.TryOpenFile(file, 3))
+                    {
+                        File.Move(file, outFile);
+                    }
                 }
             }
-        }
 
-        private void CheckDirectory(string directoryName, bool clearDirectory)
-        {
-            if (!Directory.Exists(directoryName))
+            public void CreateNewDocument()
             {
-                Directory.CreateDirectory(directoryName);
-            }
-            else if (clearDirectory)
-            {
-                ClearDirectory(directoryName);
-            }
-        }
+                _document = new Document();
+                _section = _document.AddSection();
+                _isDocumentEmpty = true;
 
-        private string GetTimeStamp()
-        {
-            return new string(DateTime.Now.ToString().Where(char.IsDigit).ToArray());
+                _renderer = new PdfDocumentRenderer
+                {
+                    Document = _document
+                };
+            }
+
+            public void SaveAndCreateNewDocument()
+            {
+                SaveDocument();
+                CreateNewDocument();
+            }
+
+            public bool CheckIfImageContinuingSequence(string inFile)
+            {
+                var currentImageSequenceNumber = Utils.GetImageSequenceNumber(inFile, Prefix);
+                var result = _imageSequenceNumber + 1 == currentImageSequenceNumber || _isDocumentEmpty;
+
+                _imageSequenceNumber = currentImageSequenceNumber;
+                return result;
+            }
+
+            public void AddImageToDocument(string imgPath)
+            {
+                var img = _section.AddImage(imgPath);
+                img.Height = _document.DefaultPageSetup.PageHeight;
+                img.Width = _document.DefaultPageSetup.PageWidth;
+                _isDocumentEmpty = false;
+            }
+
+            public bool IsTimeoutOfNewDocumentEventExpired(int timeout)
+            {
+                return !AutoResetEvent.WaitOne(timeout) && !_isDocumentEmpty;
+            }
         }
     }
 }

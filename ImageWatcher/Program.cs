@@ -21,7 +21,7 @@ namespace ImageWatcher
             {
                 Name = "Default",
                 FileName = Path.Combine(currentDir, "log.txt"),
-                Layout = "${date} ${message} ${onexception:inner=${exception:format=toString}}"
+                Layout = "${date} -Thread ${threadid}- ${message}  ${onexception:inner=${exception:format=toString}}"
             };
             conf.AddTarget(fileTarget);
             conf.AddRuleForAllLevels(fileTarget);
@@ -34,12 +34,12 @@ namespace ImageWatcher
                     hostConf.Service<ImagesWatchingService>(
                         s =>
                         {
-                            s.ConstructUsing(() => new ImagesWatchingService(inputDir, outputDir, prefix, logFactory));
+                            s.ConstructUsing(() => new ImagesWatchingService(logFactory));
                             s.WhenStarted(serv => serv.Start());
                             s.WhenStopped(serv => serv.Stop());
                         });
-                    hostConf.SetServiceName("ImageWatchingService");
-                    hostConf.SetDisplayName("Image watching service");
+                    hostConf.SetServiceName("ImagesWatchingService");
+                    hostConf.SetDisplayName("Images watching service");
                     hostConf.StartAutomaticallyDelayed();
                     hostConf.UseNLog(logFactory);
                 });
