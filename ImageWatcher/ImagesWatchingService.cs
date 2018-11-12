@@ -7,7 +7,7 @@ using ImageWatcher.Configuration;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.Rendering;
 using NLog;
-using ConfigurationManager = System.Configuration.ConfigurationManager;
+using System.Configuration;
 
 
 namespace ImageWatcher
@@ -63,15 +63,15 @@ namespace ImageWatcher
             {
                 foreach (var inFile in Directory.EnumerateFiles(threadParameter.InputFolder))
                 {
-                    if (!Regex.IsMatch(inFile, $@"(?<={threadParameter.Prefix}_)(\d+).(?=\.(jpeg|jpg|png)$)"))
+                    if (!threadParameter.IsFileMatchPrefix(inFile))
                     {
                         continue;
                     }
 
-                    var outFile = Path.Combine(threadParameter.TempFolder, Path.GetFileName(inFile));
-
                     if (Utils.TryOpenFile(inFile, 3))
                     {
+                        var outFile = Path.Combine(threadParameter.TempFolder, Path.GetFileName(inFile));
+
                         try
                         {
                             if (string.Equals(Utils.GetImageBarcodeValue(inFile), "next document", StringComparison.OrdinalIgnoreCase))
@@ -118,7 +118,7 @@ namespace ImageWatcher
             _log.Info("End of work");
         }
 
-        class WatchingThreadParameter
+        private class WatchingThreadParameter
         {
             private Document _document;
             private Section _section;
@@ -126,45 +126,42 @@ namespace ImageWatcher
             private bool _isDocumentEmpty;
             private int _imageSequenceNumber;
 
+            private readonly string _corruptedFolder;
+            private readonly string _outputFolder;
+            private readonly string _prefix;
+            private readonly AutoResetEvent _newFileEvent;
+
             public WatchingThreadParameter(ImagesWatcherElement configurationImagesWatcher)
             {
-                InputFolder = configurationImagesWatcher.InFolder;
-                OutputFolder = configurationImagesWatcher.OutFolder;
-                CorruptedFolder = configurationImagesWatcher.CorruptedFolder;
                 TempFolder = Path.Combine(Path.GetTempPath(), "ImageWatcher", Guid.NewGuid().ToString());
-                Prefix = configurationImagesWatcher.Prefix;
+                InputFolder = configurationImagesWatcher.InFolder;
+                _outputFolder = configurationImagesWatcher.OutFolder;
+                _corruptedFolder = configurationImagesWatcher.CorruptedFolder;
+                _prefix = configurationImagesWatcher.Prefix;
 
-                Utils.CheckDirectory(InputFolder, false);
-                Utils.CheckDirectory(OutputFolder, false);
                 Utils.CheckDirectory(TempFolder, true);
-                Utils.CheckDirectory(CorruptedFolder, false);
+                Utils.CheckDirectory(InputFolder, false);
+                Utils.CheckDirectory(_outputFolder, false);
+                Utils.CheckDirectory(_corruptedFolder, false);
 
-                AutoResetEvent = new AutoResetEvent(false);
+                _newFileEvent = new AutoResetEvent(false);
 
                 FileSystemWatcher = new FileSystemWatcher(InputFolder);
-                FileSystemWatcher.Created += (sender, args) => AutoResetEvent.Set();
+                FileSystemWatcher.Created += (sender, args) => _newFileEvent.Set();
             }
 
-            public FileSystemWatcher FileSystemWatcher { get; set; }
+            public FileSystemWatcher FileSystemWatcher { get;}
 
-            public AutoResetEvent AutoResetEvent { get; set; }
+            public string InputFolder { get;}
 
-            public string InputFolder { get; set; }
-
-            public string OutputFolder { get; set; }
-
-            public string TempFolder { get; set; }
-
-            public string CorruptedFolder { get; set; }
-
-            public string Prefix { get; set; }
+            public string TempFolder { get;}
 
             public void SaveDocument()
             {
                 if (!_isDocumentEmpty)
                 {
                     _renderer.RenderDocument();
-                    _renderer.Save($"{OutputFolder}/result-{Utils.GetTimeStamp()}.pdf");
+                    _renderer.Save($"{_outputFolder}/result-{Utils.GetTimeStamp()}.pdf");
                 }
 
                 Utils.ClearDirectory(TempFolder);
@@ -173,10 +170,10 @@ namespace ImageWatcher
             public void MoveFilesToCorruptedFolder()
             {
                 var time = Utils.GetTimeStamp();
-                Directory.CreateDirectory(Path.Combine(CorruptedFolder, time));
+                Directory.CreateDirectory(Path.Combine(_corruptedFolder, time));
                 foreach (var file in Directory.EnumerateFiles(TempFolder))
                 {
-                    var outFile = Path.Combine(CorruptedFolder, time, Path.GetFileName(file));
+                    var outFile = Path.Combine(_corruptedFolder, time, Path.GetFileName(file));
                     if (Utils.TryOpenFile(file, 3))
                     {
                         File.Move(file, outFile);
@@ -204,7 +201,7 @@ namespace ImageWatcher
 
             public bool CheckIfImageContinuingSequence(string inFile)
             {
-                var currentImageSequenceNumber = Utils.GetImageSequenceNumber(inFile, Prefix);
+                var currentImageSequenceNumber = Utils.GetImageSequenceNumber(inFile, _prefix);
                 var result = _imageSequenceNumber + 1 == currentImageSequenceNumber || _isDocumentEmpty;
 
                 _imageSequenceNumber = currentImageSequenceNumber;
@@ -221,7 +218,12 @@ namespace ImageWatcher
 
             public bool IsTimeoutOfNewDocumentEventExpired(int timeout)
             {
-                return !AutoResetEvent.WaitOne(timeout) && !_isDocumentEmpty;
+                return !_newFileEvent.WaitOne(timeout) && !_isDocumentEmpty;
+            }
+
+            public bool IsFileMatchPrefix(string fileName)
+            {
+                return Regex.IsMatch(fileName, $@"(?<={_prefix}_)(\d+).(?=\.(jpeg|jpg|png)$)");
             }
         }
     }

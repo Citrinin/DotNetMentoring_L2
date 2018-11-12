@@ -9,9 +9,9 @@ using ZXing;
 
 namespace ImageWatcher
 {
-    public static class Utils
+    internal static class Utils
     {
-        private static object _barcodeLock = new object();
+        private static readonly object _barcodeLock = new object();
 
         private static readonly BarcodeReader _barcodeReader = new BarcodeReader() { AutoRotate = true };
         public static string GetTimeStamp()

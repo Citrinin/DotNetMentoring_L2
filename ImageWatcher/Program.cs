@@ -12,9 +12,6 @@ namespace ImageWatcher
         static void Main(string[] args)
         {
             var currentDir = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
-            var inputDir = Path.Combine(currentDir, "in");
-            var outputDir = Path.Combine(currentDir, "out");
-            var prefix = "img";
 
             var conf = new LoggingConfiguration();
             var fileTarget = new FileTarget()
