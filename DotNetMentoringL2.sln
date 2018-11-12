@@ -46,6 +46,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerStateManaged", "PowerS
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PowerStateManagedTests", "PowerStateManagedTests\PowerStateManagedTests.csproj", "{E32C5A35-F268-4C04-9A22-917831AB1692}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "WindowsServices", "WindowsServices", "{E2BC3EFA-E37C-4AEE-AB6B-E78ECC679CD1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageWatcher", "ImageWatcher\ImageWatcher.csproj", "{BEDE36F5-5CDD-4184-AE90-909F18BA4EBD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -182,6 +186,14 @@ Global
 		{E32C5A35-F268-4C04-9A22-917831AB1692}.Release|Any CPU.Build.0 = Release|Any CPU
 		{E32C5A35-F268-4C04-9A22-917831AB1692}.Release|x64.ActiveCfg = Release|Any CPU
 		{E32C5A35-F268-4C04-9A22-917831AB1692}.Release|x64.Build.0 = Release|Any CPU
+		{BEDE36F5-5CDD-4184-AE90-909F18BA4EBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BEDE36F5-5CDD-4184-AE90-909F18BA4EBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BEDE36F5-5CDD-4184-AE90-909F18BA4EBD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{BEDE36F5-5CDD-4184-AE90-909F18BA4EBD}.Debug|x64.Build.0 = Debug|Any CPU
+		{BEDE36F5-5CDD-4184-AE90-909F18BA4EBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BEDE36F5-5CDD-4184-AE90-909F18BA4EBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BEDE36F5-5CDD-4184-AE90-909F18BA4EBD}.Release|x64.ActiveCfg = Release|Any CPU
+		{BEDE36F5-5CDD-4184-AE90-909F18BA4EBD}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -203,6 +215,7 @@ Global
 		{F3498CB5-3978-4231-96F6-0ECE96060B96} = {5D7B853B-81D4-40D0-9541-94C112F4D8D6}
 		{C393479E-D79C-4B4F-BD36-93B4857CE089} = {E430705A-AA68-4E94-8384-DC9BEB971FF6}
 		{E32C5A35-F268-4C04-9A22-917831AB1692} = {E430705A-AA68-4E94-8384-DC9BEB971FF6}
+		{BEDE36F5-5CDD-4184-AE90-909F18BA4EBD} = {E2BC3EFA-E37C-4AEE-AB6B-E78ECC679CD1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {E866C6A0-0ACD-4C5D-BCCC-C1B23ED0C5A9}
