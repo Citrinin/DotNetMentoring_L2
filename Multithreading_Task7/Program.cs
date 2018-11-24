@@ -18,22 +18,25 @@ namespace Multithreading_Task7
         static void Main(string[] args)
         {
 
-            var taskASuccess = Task.Run(() => { Thread.Sleep(1000); }).ContinueWith(result => Console.WriteLine("Continuation of taskA success"), TaskContinuationOptions.None);
+            var taskASuccess = Task.Run(() => { Thread.Sleep(1000); })
+                .ContinueWith(result => Console.WriteLine("Continuation of taskA success"), TaskContinuationOptions.None);
             taskASuccess.Wait();
 
-            var taskAFail = Task.Run(() => { Thread.Sleep(1000); throw new Exception(":("); }).ContinueWith(result =>
-            {
-                Console.WriteLine("Continuation of taskA exception");
-                Console.WriteLine(result.Exception?.Message);
-            }, TaskContinuationOptions.None);
+            var taskAFail = Task.Run(() => { Thread.Sleep(1000); throw new Exception(":("); })
+                .ContinueWith(result =>
+                    {
+                        Console.WriteLine("Continuation of taskA exception");
+                        Console.WriteLine(result.Exception?.Message);
+                    }, TaskContinuationOptions.None);
             taskAFail.Wait();
 
             var taskBSuccess = Task.Run(() => { Thread.Sleep(1000); });
-            taskBSuccess.ContinueWith(result =>
-            {
-                Console.WriteLine("Continuation of taskB success");
-            },
-                TaskContinuationOptions.OnlyOnFaulted);
+            taskBSuccess
+                .ContinueWith(result =>
+                    {
+                        Console.WriteLine("Continuation of taskB success");
+                    },
+                    TaskContinuationOptions.OnlyOnFaulted);
             taskBSuccess.Wait();
 
             var taskBFail = Task.Run(() => { Thread.Sleep(1000); throw new Exception(":("); }).ContinueWith(result =>

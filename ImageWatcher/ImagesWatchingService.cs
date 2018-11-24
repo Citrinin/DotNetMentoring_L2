@@ -8,7 +8,9 @@ using MigraDoc.DocumentObjectModel;
 using MigraDoc.Rendering;
 using NLog;
 using System.Configuration;
-
+using System.Threading.Tasks;
+using Microsoft.Azure.ServiceBus;
+using SBCommon;
 
 namespace ImageWatcher
 {
@@ -21,6 +23,11 @@ namespace ImageWatcher
         private readonly int _timeout;
         private readonly ImageWatcherConfigurationSection _configuration;
         private static Logger _log;
+
+
+        private static string connString =
+            "Endpoint=sb://messagequeuestask.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=eZrzUCBPE+R+VlHed0FMkCqcUV6SzfDoAhXD9e2EmPk=";
+        private static string queueName = "imageswatcherqueue";
 
         public ImagesWatchingService(LogFactory logger)
         {
@@ -54,7 +61,7 @@ namespace ImageWatcher
             _workThreads.ForEach(thread => thread.Join());
         }
 
-        private void WorkProcedure(object obj)
+        private async void WorkProcedure(object obj)
         {
             var threadParameter = (WatchingThreadParameter)obj;
             threadParameter.FileSystemWatcher.EnableRaisingEvents = true;
@@ -78,14 +85,14 @@ namespace ImageWatcher
                             {
                                 File.Delete(inFile);
                                 _log.Info("new file - barcode");
-                                threadParameter.SaveAndCreateNewDocument();
+                                await threadParameter.SaveAndCreateNewDocument();
                                 continue;
                             }
 
                             if (!threadParameter.CheckIfImageContinuingSequence(inFile))
                             {
                                 _log.Info("new file - end of sequence");
-                                threadParameter.SaveAndCreateNewDocument();
+                                await threadParameter.SaveAndCreateNewDocument();
                             }
 
                             _log.Info("img to pdf");
@@ -109,11 +116,11 @@ namespace ImageWatcher
                 if (threadParameter.IsTimeoutOfNewDocumentEventExpired(_timeout))
                 {
                     _log.Info("new file - timeout");
-                    threadParameter.SaveAndCreateNewDocument();
+                    await threadParameter.SaveAndCreateNewDocument();
                 }
             }
             while (!_stopWorkEvent.WaitOne(1000));
-            threadParameter.SaveDocument();
+            await threadParameter.SaveDocument();
             threadParameter.FileSystemWatcher.EnableRaisingEvents = false;
             _log.Info("End of work");
         }
@@ -130,6 +137,7 @@ namespace ImageWatcher
             private readonly string _outputFolder;
             private readonly string _prefix;
             private readonly AutoResetEvent _newFileEvent;
+            private readonly IQueueClient client;
 
             public WatchingThreadParameter(ImagesWatcherElement configurationImagesWatcher)
             {
@@ -148,20 +156,28 @@ namespace ImageWatcher
 
                 FileSystemWatcher = new FileSystemWatcher(InputFolder);
                 FileSystemWatcher.Created += (sender, args) => _newFileEvent.Set();
+
+                client = new QueueClient(connString, queueName);
             }
 
-            public FileSystemWatcher FileSystemWatcher { get;}
+            public FileSystemWatcher FileSystemWatcher { get; }
 
-            public string InputFolder { get;}
+            public string InputFolder { get; }
 
-            public string TempFolder { get;}
+            public string TempFolder { get; }
 
-            public void SaveDocument()
+            public async Task SaveDocument()
             {
                 if (!_isDocumentEmpty)
                 {
                     _renderer.RenderDocument();
-                    _renderer.Save($"{_outputFolder}/result-{Utils.GetTimeStamp()}.pdf");
+                    //_renderer.Save($"{_outputFolder}/result-{Utils.GetTimeStamp()}.pdf");
+
+                    var messages = await CreateMessage(_renderer);
+                    foreach (var message in messages)
+                    {
+                        await client.SendAsync(message);
+                    }
                 }
 
                 Utils.ClearDirectory(TempFolder);
@@ -185,6 +201,7 @@ namespace ImageWatcher
             {
                 _document = new Document();
                 _section = _document.AddSection();
+
                 _isDocumentEmpty = true;
 
                 _renderer = new PdfDocumentRenderer
@@ -193,9 +210,9 @@ namespace ImageWatcher
                 };
             }
 
-            public void SaveAndCreateNewDocument()
+            public async Task SaveAndCreateNewDocument()
             {
-                SaveDocument();
+                await SaveDocument();
                 CreateNewDocument();
             }
 
@@ -224,6 +241,26 @@ namespace ImageWatcher
             public bool IsFileMatchPrefix(string fileName)
             {
                 return Regex.IsMatch(fileName, $@"(?<={_prefix}_)(\d+).(?=\.(jpeg|jpg|png)$)");
+            }
+
+            private Task<IEnumerable<Message>> CreateMessage(PdfDocumentRenderer renderer)
+            {
+                if (renderer == null)
+                {
+                    return null;
+                }
+
+                using (var ms = new MemoryStream())
+                {
+                    renderer.Save(ms, false);
+                    using (var fs = new FileStream($"{_outputFolder}/result-{Utils.GetTimeStamp()}.pdf", FileMode.Create))
+                    {
+                        ms.CopyTo(fs);
+                        ms.Seek(0, SeekOrigin.Begin);
+                    }
+                    var pdfCreator = new PdfMessagesCreator();
+                    return pdfCreator.CreatePdfPartialMessageAsync(ms);
+                }
             }
         }
     }
