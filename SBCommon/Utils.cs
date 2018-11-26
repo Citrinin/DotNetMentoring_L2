@@ -6,10 +6,9 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using ZXing;
 
-
-namespace ImageWatcher
+namespace SBCommon
 {
-    internal static class Utils
+    public static class Utils
     {
         private static readonly object _barcodeLock = new object();
 
