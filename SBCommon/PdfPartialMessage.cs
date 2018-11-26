@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading.Tasks;
 using Microsoft.Azure.ServiceBus;
@@ -26,7 +27,7 @@ namespace SBCommon
                 return null;
             }
 
-            var result = new List<Message>();
+            var result = new List<PdfPartialMessage>();
             var identifier = Guid.NewGuid();
             var position = 0;
             var sequenceNumber = 0;
@@ -36,19 +37,19 @@ namespace SBCommon
                 var messageContent = new byte[size];
                 var count = ms.Read(messageContent, 0, (int)size);
                 position += count;
-                result.Add(CreateMessages(new PdfPartialMessage
+                result.Add(new PdfPartialMessage
                 {
                     EndOfSequence = position == ms.Length,
                     MessageId = identifier,
                     PartialMessage = messageContent,
                     SequenceNumber = sequenceNumber
-                }));
+                });
                 sequenceNumber++;
             }
-            return result;
+            return result.OrderBy(pm=>pm.SequenceNumber).Select(CreateMessage);
         }
 
-        private Message CreateMessages(PdfPartialMessage pdfPartialMessage)
+        private Message CreateMessage(PdfPartialMessage pdfPartialMessage)
         {
             if (pdfPartialMessage == null)
                 return null;
