@@ -13,8 +13,8 @@ namespace FileReceiver
     public class FileReceiverService
     {
         private readonly IQueueClient _client;
-        private readonly Dictionary<Guid, List<PdfPartialMessage>> _storage = new Dictionary<Guid, List<PdfPartialMessage>>();
-        private readonly PdfMessagesCreator _pdfMessagesCreator = new PdfMessagesCreator();
+        private readonly Dictionary<Guid, List<PdfPartialMessage>> _storage;
+        private readonly PdfMessagesCreator _pdfMessagesCreator;
         private readonly ManualResetEvent _stopWorkEvent;
         private readonly string _outputFolder;
         private Task _workingTask;
@@ -26,8 +26,9 @@ namespace FileReceiver
             var queueName = ConfigurationManager.AppSettings["QueueName"];
             _client = new QueueClient(connectionString, queueName, ReceiveMode.ReceiveAndDelete);
             _stopWorkEvent = new ManualResetEvent(false);
-
+            _storage = new Dictionary<Guid, List<PdfPartialMessage>>();
             _outputFolder = ConfigurationManager.AppSettings["OutputFolder"];
+            _pdfMessagesCreator = new PdfMessagesCreator();
             Utils.CheckDirectory(_outputFolder, false);
         }
 
@@ -43,7 +44,7 @@ namespace FileReceiver
                     args =>
                     {
                         Console.WriteLine(args.Exception.ToString());
-                        return Task.FromResult("success");
+                        return Task.CompletedTask;
                     }
                 );
                 _stopWorkEvent.WaitOne();
