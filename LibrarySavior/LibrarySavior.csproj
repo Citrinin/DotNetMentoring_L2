@@ -53,6 +53,8 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="books.xml" />
+    <Content Include="HtmlReport.xslt" />
+    <Content Include="RSSLibrary.xslt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
