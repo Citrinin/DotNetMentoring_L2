@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{97522280-3AB1-4B96-B894-EBCF2FB9246A}</ProjectGuid>
+    <ProjectGuid>{D70E341D-4F68-4BD8-8B9B-123194B7A192}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>LibrarySavior</RootNamespace>
-    <AssemblyName>LibrarySavior</AssemblyName>
+    <RootNamespace>HTMLReportGenerator</RootNamespace>
+    <AssemblyName>HTMLReportGenerator</AssemblyName>
     <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -47,12 +47,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
-    <None Include="books_schema.xsd">
-      <SubType>Designer</SubType>
-    </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="books.xml" />
+    <Content Include="HtmlReport.xslt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
