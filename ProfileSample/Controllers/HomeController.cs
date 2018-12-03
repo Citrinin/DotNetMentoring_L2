@@ -55,6 +55,24 @@ namespace ProfileSample.Controllers
             return View(model);
         }
 
+        public ActionResult IndexOptimized()
+        {
+            using (var context = new DAL.ProfileSample())
+            {
+                return View(context.ImgSources.Take(20).Select(x => x.Id).ToList());
+            }
+        }
+
+        [OutputCache(Duration = 3600, VaryByParam = "none")]
+        public ActionResult GetImage(int id)
+        {
+            using (var context = new DAL.ProfileSample())
+            {
+                var img = context.ImgSources.Find(id);
+
+                return File(CreateThumbnail(img.Data, 300, 150), "image/png");
+            }
+        }
 
         public static byte[] CreateThumbnail(byte[] image, int width, int height)
         {
