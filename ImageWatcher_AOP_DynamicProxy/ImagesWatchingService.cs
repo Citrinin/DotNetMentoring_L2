@@ -5,7 +5,8 @@ using System.Threading;
 using ImageWatcher.Configuration;
 using NLog;
 using System.Configuration;
-using Castle.DynamicProxy;
+using Autofac;
+using Autofac.Extras.DynamicProxy;
 using LogLib;
 using SBCommon;
 
@@ -13,7 +14,6 @@ namespace ImageWatcher
 {
     public class ImagesWatchingService
     {
-
         private readonly ManualResetEvent _stopWorkEvent;
         private readonly List<Thread> _workThreads;
         private readonly List<IWatchingThreadParameter> _workThreadParameters;
@@ -28,15 +28,24 @@ namespace ImageWatcher
                 (ImageWatcherConfigurationSection)ConfigurationManager.GetSection("imageWatcherConfiguration");
             _workThreadParameters = new List<IWatchingThreadParameter>();
             _workThreads = new List<Thread>();
-            var generator = new ProxyGenerator();
 
+
+            var builder = new ContainerBuilder();
+            builder.RegisterType<WatchingThreadParameter>()
+                   .As<IWatchingThreadParameter>()
+                   .EnableInterfaceInterceptors()
+                   .InterceptedBy(typeof(LogInterceptor));
+
+            builder.Register(c => new LogInterceptor(logger));
+
+            var container = builder.Build();
 
             foreach (var imagesWatcher in _configuration.ImagesWatchers)
             {
                 _workThreadParameters.Add(
-                    generator.CreateInterfaceProxyWithTarget<IWatchingThreadParameter>(
-                        new WatchingThreadParameter((ImagesWatcherElement)imagesWatcher), 
-                        new LogInterceptor(logger)));
+                    container.Resolve<IWatchingThreadParameter>(
+                        new NamedParameter("configurationImagesWatcher", imagesWatcher)
+                        ));
             }
             _stopWorkEvent = new ManualResetEvent(false);
             _timeout = 10000;
