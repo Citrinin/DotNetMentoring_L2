@@ -16,11 +16,11 @@ namespace ImageWatcher
         private readonly List<WatchingThreadParameter> _workThreadParameters;
         private readonly int _timeout;
         private readonly ImageWatcherConfigurationSection _configuration;
-        private static Logger _log;
+        private static Logger _log = LogManager.GetCurrentClassLogger();
 
-        public ImagesWatchingService(LogFactory logger)
+        public ImagesWatchingService()
         {
-            _log = logger.GetCurrentClassLogger();
+
             _configuration =
                 (ImageWatcherConfigurationSection)ConfigurationManager.GetSection("imageWatcherConfiguration");
             _workThreadParameters = new List<WatchingThreadParameter>();

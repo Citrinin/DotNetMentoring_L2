@@ -11,34 +11,20 @@ namespace ImageWatcher
     {
         static void Main(string[] args)
         {
-            var currentDir = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName);
-
-            var conf = new LoggingConfiguration();
-            var fileTarget = new FileTarget()
-            {
-                Name = "Default",
-                FileName = Path.Combine(currentDir, "log.txt"),
-                Layout = "${date} -Thread ${threadid}- ${message}  ${onexception:inner=${exception:format=toString}}"
-            };
-            conf.AddTarget(fileTarget);
-            conf.AddRuleForAllLevels(fileTarget);
-
-            var logFactory = new LogFactory(conf);
-
             HostFactory.Run(
                 hostConf => 
                 {
                     hostConf.Service<ImagesWatchingService>(
                         s =>
                         {
-                            s.ConstructUsing(() => new ImagesWatchingService(logFactory));
+                            s.ConstructUsing(() => new ImagesWatchingService());
                             s.WhenStarted(serv => serv.Start());
                             s.WhenStopped(serv => serv.Stop());
                         });
                     hostConf.SetServiceName("ImagesWatchingService");
                     hostConf.SetDisplayName("Images watching service");
                     hostConf.StartAutomaticallyDelayed();
-                    hostConf.UseNLog(logFactory);
+                    hostConf.UseNLog();
                 });
         }
     }
